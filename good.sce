@@ -133,4 +133,4 @@ for i=1:n
 	ftheta =  R(3,N+1) * normale(y(i),R(1,N+1),R(4,N+1)) + (1 - R(3,N+1)) * normale(y(i),R(2,N+1),R(5,N+1)) ;
 	proba_appartenir_1 = [proba_appartenir_1 ; R(3,N+1) * normale(y(i),R(1,N+1),R(4,N+1)) / ftheta ] ;
 end;
-plot(ls_abs,proba_appartenir_1);
+plot(y,proba_appartenir_1');
