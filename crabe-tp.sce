@@ -28,7 +28,7 @@ plot(ls_abs,densite/sum(densite));
 // Tracer l'histogramme
 // A FAIRE
 bar(y,x/sum(x));
-
+xtitle('Loi empirique des donnees et loi gaussienne la plus proche');
 
 
 // TEST DU CHI 2
@@ -46,13 +46,13 @@ function[proba]=test_chi2(N,p0)
   zeta_n=n*sum(((N/n-p0).^2)./p0);
   // nombre de degres de liberte  (= nombre de classes dans N-1)
   d= length(N)-1;
-  // on calcule la proba pour un chi 2 � d-1 degres d'etre superieur a zeta
+  // on calcule la proba pour un chi 2 à d-1 degres d'etre superieur a zeta
   [p,q]=cdfchi("PQ",zeta_n,d)
   proba=q;
 endfunction;
 
 
-// On ne consid�re que les classes ayant un effectifs sup�rieur � 5
+// On ne considère que les classes ayant un effectifs supérieur à 5
 effectifs = x(2:27);
 classes = y(2:27);
 
@@ -68,19 +68,19 @@ p_valeur = test_chi2(effectifs,p0)
 
 
 // Donnees
-pi0=[1; 3 ; 6]/10;
+pi0=[1; 3]/2/2;
 pi=pi0;
-mu=[.57; .67; .67];
-s2=[1 ;1;1]/10000;
+mu=[.57; .67];
+s2=[1 ;1]/10000;
 
-rho=ones(3,1000);
+rho=ones(2,1000);
 
 // Algorithme EM pour les crabes 
 //------------------------------
 
 N=1000;
-R=zeros(8,N+1);
-R(:,1)=[mu(1);mu(2);mu(3);pi(1);pi(2);s2(1);s2(2);s2(3)];
+R=zeros(5,N+1);
+R(:,1)=[mu(1);mu(2);pi(1);s2(1);s2(2)];
 
 
 Y = [];
@@ -92,44 +92,29 @@ for l=1:n
 end;
 
 
-
-function[proba]=probabilite(i,ite)
-	if i==1
-		proba = R(4,ite);
-	end;
-	if i==2
-		proba = R(5,ite);
-	end;
-	if i==3
-		proba = 1 - R(4,ite) - R(5,ite);
-	end;  
-endfunction;
-
-
-
 for ite=1:N
 	for k=1:N
 	  // Iteration k
 	  // A FAIRE
 	  // Calcul de rho
-	  for i=1:3
-	  	rho(i,k) = probabilite(i,ite) * normale(Y(k),R(i,ite),R(i+5,ite));
+	  ftheta = 0; 
+	  for i=1:2
+	  	rho(i,k) = ( R(3,ite)*(2-i) + (1-R(3,ite)) * (i-1)   ) * normale(Y(k),R(i,ite),R(i+3,ite));
+	  	ftheta = ftheta + rho(i,k);
 	  end;
-	  rho(:,k) = rho(:,k) / sum(rho(:,k));
+	  rho(:,k) = rho(:,k) / ftheta;
 	end;
-	// calcul de pi(1), pi(2)
-	R(4,ite+1) = (1/N) * sum(rho(1,:));
-	R(5,ite+1) = (1/N) * sum(rho(2,:));
+
+	// calcul de pi(1)
+	R(3,ite+1) = (1/N) * sum(rho(1,:));
 
 	// calcul mu
 	R(1,ite+1) = rho(1,:) * Y / sum(rho(1,:));
 	R(2,ite+1) = rho(2,:) * Y / sum(rho(2,:));
-	R(3,ite+1) = rho(3,:) * Y / sum(rho(3,:));
 
 	// calcul sigma
-	R(6,ite+1) = ( rho(1,:) * ((Y-R(1,ite+1)).^2) ) / sum(rho(1,:));
-	R(7,ite+1) = ( rho(2,:) * ((Y-R(2,ite+1)).^2) ) / sum(rho(2,:));
-	R(8,ite+1) = ( rho(3,:) * ((Y-R(3,ite+1)).^2) ) / sum(rho(3,:));
+	R(4,ite+1) = ( rho(1,:) * ((Y-R(1,ite+1)).^2) ) / sum(rho(1,:));
+	R(5,ite+1) = ( rho(2,:) * ((Y-R(2,ite+1)).^2) ) / sum(rho(2,:));
 end;
 
 
@@ -137,9 +122,24 @@ end;
 // A FAIRE
 
 figure(2);
+// Affichage de la loi empirique
 bar(y,x/sum(x));
+
+// Affichage de la loi de melange
 ls_abs = [0.58:0.004:0.696];
-densite = normale(ls_abs,R(1,N+1),R(6,N+1)) * R(4,N+1);
-densite = densite + normale(ls_abs,R(2,N+1),R(7,N+1)) * R(5,N+1);
-densite = densite + normale(ls_abs,R(3,N+1),R(8,N+1)) * (1- R(4,N+1)- R(5,N+1));
-plot(ls_abs,densite/sum(densite));
+densite = normale(ls_abs,R(1,N+1),R(4,N+1)) * R(3,N+1);
+densite = densite + normale(ls_abs,R(2,N+1),R(5,N+1)) * (1- R(3,N+1));
+plot2d(ls_abs,densite/sum(densite));
+xtitle('Loi empirique des données et loi de mélange obtenue pour deux classes');
+
+
+figure(3);
+// Affichage de la probabilité d'appartenir à la classe 1 sachant le ratio
+proba_appartenir_1 = []
+for i=1:n
+	ftheta =  R(3,N+1) * normale(y(i),R(1,N+1),R(4,N+1)) + (1 - R(3,N+1)) * normale(y(i),R(2,N+1),R(5,N+1)) ;
+	proba_appartenir_1 = [proba_appartenir_1 ; R(3,N+1) * normale(y(i),R(1,N+1),R(4,N+1)) / ftheta ] ;
+end;
+plot2d(y,proba_appartenir_1');
+xtitle('Probabilité d appartenir à la classe 1 sachant le ratio');
+
